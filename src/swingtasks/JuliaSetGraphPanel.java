@@ -12,6 +12,36 @@ public class JuliaSetGraphPanel extends JPanel {
     private final BufferedImage bufferedImage;
     private ColorFilter filter;
 
+    public float getHueMultiplier() {
+        return hueMultiplier;
+    }
+
+    public void setHueMultiplier(float hueMultiplier) {
+        this.hueMultiplier = hueMultiplier;
+    }
+
+    private float hueMultiplier = .5f;
+
+    public float getSaturationMultiplier() {
+        return saturationMultiplier;
+    }
+
+    public void setSaturationMultiplier(float saturationMultiplier) {
+        this.saturationMultiplier = saturationMultiplier;
+    }
+
+    private float saturationMultiplier = 1f;
+
+    public float getBrightnessMultiplier() {
+        return brightnessMultiplier;
+    }
+
+    public void setBrightnessMultiplier(float brightnessMultiplier) {
+        this.brightnessMultiplier = brightnessMultiplier;
+    }
+
+    private float brightnessMultiplier = 1f;
+
     public void setZoom(double zoom) {
         this.zoom = zoom;
     }
@@ -88,7 +118,7 @@ public class JuliaSetGraphPanel extends JPanel {
 
                 int c;
                 if (iter > 0)
-                    c = Color.HSBtoRGB((maxIterations / iter) % 1, 1, 1);
+                    c = Color.HSBtoRGB(hueMultiplier * (maxIterations / iter) % 1, saturationMultiplier, brightnessMultiplier);
                 else c = Color.HSBtoRGB(maxIterations / iter, 1, 0);
 
                 bufferedImage.setRGB(x, y, filter == null ? c : filter.filter(new Color(c)));

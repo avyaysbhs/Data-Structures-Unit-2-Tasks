@@ -1,127 +1,107 @@
 package swingtasks;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class JuliaSetProgram {
+public class JuliaSetProgram extends JFrame {
 
-    public static void anchorComponent(Component component, Container container, GridBagLayout layout, GridBagConstraints gbc, int x, int y, int width, int height) {
-        gbc.gridx = x;
-        gbc.gridy = y;
-
-        gbc.gridwidth = width;
-        gbc.gridheight = height;
-
-        layout.setConstraints(component, gbc);
-        container.add(component);
-    }
-
-    public static void main(String[] args)
+    public JuliaSetProgram()
     {
-        AtomicReference<Float> filterSaturation = new AtomicReference<>(.8f);
-        AtomicReference<Float> filterBrightness = new AtomicReference<>(.8f);
-
-        JFrame frame = new JFrame();
+        JFrame frame = this;
         frame.setSize(Toolkit.getDefaultToolkit().getScreenSize());
         frame.setResizable(true);
 
         float limit = 100;
 
-        JuliaSetGraphPanel jsPanel = new JuliaSetGraphPanel(frame.getWidth(), frame.getHeight(), c ->
-        {
-            float[] comp = new float[3];
-            Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), comp);
-            return Color.HSBtoRGB(comp[0], comp[1]* filterSaturation.get(), comp[2]* filterBrightness.get());
-        });
+        JuliaSetGraphPanel jsPanel = new JuliaSetGraphPanel(frame.getWidth(), frame.getHeight());
 
         Dimension baseSize =  jsPanel.getSize();
         jsPanel.setPreferredSize(baseSize);
         JScrollPane scrollPane = new JScrollPane(jsPanel);
+
         Dimension scSize = Toolkit.getDefaultToolkit().getScreenSize();
         frame.setSize(scSize.width/2, scSize.height/2);
         scrollPane.setSize(frame.getWidth(), frame.getHeight()-200);
 
+        int fields = 7;
+
         JPanel totalLayout = new JPanel(new GridLayout(2, 1));
-//        GridBagLayout bagLayout = new GridBagLayout();
-//        GridBagConstraints gbc = new GridBagConstraints();
-//        gbc.weightx = 1;
-//        gbc.fill = GridBagConstraints.HORIZONTAL;
-        JPanel barsLayout = new JPanel(new GridLayout(6, 1));
-        JPanel labelsLayout = new JPanel(new GridLayout(6, 1));
+        JPanel barsLayout = new JPanel(new GridLayout(fields, 1));
+        JPanel labelsLayout = new JPanel(new GridLayout(fields, 2));
         JPanel labeledBarsLayout = new JPanel(new BorderLayout());
 
         JScrollBar a = new JScrollBar(JScrollBar.HORIZONTAL, 100, 0, 0, 400);
-        a.addAdjustmentListener((adjustment) ->
-        {
-            jsPanel.setA(adjustment.getValue()*.01);
-            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
-
         JScrollBar b = new JScrollBar(JScrollBar.HORIZONTAL, 100, 0, 0, 400);
-        b.addAdjustmentListener((adjustment) ->
-        {
-            jsPanel.setB(adjustment.getValue()*.01);
-            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
-
         JScrollBar i = new JScrollBar(JScrollBar.HORIZONTAL, 100, 0, 0, 255);
-        i.addAdjustmentListener((adjustment) ->
-        {
-            jsPanel.setMaxIterations(adjustment.getValue());
-            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
-
         JScrollBar z = new JScrollBar(JScrollBar.HORIZONTAL, 100, 0, 0, 800);
-        z.addAdjustmentListener((adjustment) ->
-        {
-            jsPanel.setZoom((float) (adjustment.getValue() * .01));
-            jsPanel.setPreferredSize(new Dimension((int) (baseSize.getWidth() * jsPanel.getZoom()), (int) (baseSize.getHeight() * jsPanel.getZoom())));
-            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
 
+        AdjustmentListener abiz = adjustmentEvent -> {
+            if (adjustmentEvent.getSource() == a)
+                jsPanel.setA(adjustmentEvent.getValue()*.01);
+            else if (adjustmentEvent.getSource() == b)
+                jsPanel.setB(adjustmentEvent.getValue()*.01);
+            else if (adjustmentEvent.getSource() == i)
+                jsPanel.setMaxIterations(adjustmentEvent.getValue());
+            else if (adjustmentEvent.getSource() == z)
+            {
+                jsPanel.setZoom((float) (adjustmentEvent.getValue() * .01));
+                jsPanel.setPreferredSize(new Dimension((int) (baseSize.getWidth() * jsPanel.getZoom()), (int) (baseSize.getHeight() * jsPanel.getZoom())));
+            }
+            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
+        };
+
+        a.addAdjustmentListener(abiz);
+        b.addAdjustmentListener(abiz);
+        i.addAdjustmentListener(abiz);
+        z.addAdjustmentListener(abiz);
+
+        JScrollBar hu = new JScrollBar(JScrollBar.HORIZONTAL, 50, 0, 0, 100);
         JScrollBar st = new JScrollBar(JScrollBar.HORIZONTAL, 80, 0, 0, 100);
-        st.addAdjustmentListener((adjustment) ->
-        {
-            filterSaturation.set(adjustment.getValue() * .01f);
-            if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
-
         JScrollBar br = new JScrollBar(JScrollBar.HORIZONTAL, 80, 0, 0, 100);
-        br.addAdjustmentListener((adjustment) ->
-        {
-            filterBrightness.set(adjustment.getValue() * .01f);
+
+        AdjustmentListener hsbListener = adjustmentEvent -> {
+            if (adjustmentEvent.getSource() == hu)
+                jsPanel.setHueMultiplier(adjustmentEvent.getValue()/100f);
+            else if (adjustmentEvent.getSource() == st)
+                jsPanel.setSaturationMultiplier(adjustmentEvent.getValue()/100.0f);
+            else if (adjustmentEvent.getSource() == br)
+                jsPanel.setBrightnessMultiplier(adjustmentEvent.getValue()/100.0f);
             if (jsPanel.getMaxIterations() < limit) jsPanel.repaint();
-        });
+        };
 
-//        gbc.anchor = GridBagConstraints.LINE_START;
-//        anchorComponent(new JLabel("A"), barsLayout, bagLayout, gbc, 0, 0, 2, 1);
-//        anchorComponent(new JLabel("B"), barsLayout, bagLayout, gbc, 0, 1, 2, 1);
-//        anchorComponent(new JLabel("Iterations"), barsLayout, bagLayout, gbc, 0, 2, 2, 1);
-//        anchorComponent(new JLabel("Zoom"), barsLayout, bagLayout, gbc, 0, 3, 2, 1);
-//        anchorComponent(new JLabel("Saturation"), barsLayout, bagLayout, gbc, 0, 4, 2, 1);
-//        anchorComponent(new JLabel("Brightness"), barsLayout, bagLayout, gbc, 0, 5, 2, 1);
-//
-//        anchorComponent(a, barsLayout, bagLayout, gbc, 1, 0, 8, 1);
-//        anchorComponent(b, barsLayout, bagLayout, gbc, 1, 1, 8, 1);
-//        anchorComponent(i, barsLayout, bagLayout, gbc, 1, 2, 8, 1);
-//        anchorComponent(z, barsLayout, bagLayout, gbc, 1, 3, 8, 1);
-//        anchorComponent(st, barsLayout, bagLayout, gbc, 1, 4, 8, 1);
-//        anchorComponent(br, barsLayout, bagLayout, gbc, 1, 5, 8, 1);
+        hu.addAdjustmentListener(hsbListener);
+        hu.addAdjustmentListener(hsbListener);
+        hu.addAdjustmentListener(hsbListener);
 
-        labelsLayout.add(new JLabel("A")); barsLayout.add(a);
-        labelsLayout.add(new JLabel("B")); barsLayout.add(b);
-        labelsLayout.add(new JLabel("Iterations")); barsLayout.add(i);
-        labelsLayout.add(new JLabel("Zoom")); barsLayout.add(z);
-        labelsLayout.add(new JLabel("Saturation")); barsLayout.add(st);
-        labelsLayout.add(new JLabel("Brightness")); barsLayout.add(br);
+        labelsLayout.add(new JLabel("A")); labelsLayout.add(createSpinnerFrom(a)); barsLayout.add(a);
+        labelsLayout.add(new JLabel("B")); labelsLayout.add(createSpinnerFrom(b));barsLayout.add(b);
+        labelsLayout.add(new JLabel("Iterations")); labelsLayout.add(createSpinnerFrom(i)); barsLayout.add(i);
+        labelsLayout.add(new JLabel("Zoom")); labelsLayout.add(createSpinnerFrom(z)); barsLayout.add(z);
+        labelsLayout.add(new JLabel("Hue")); labelsLayout.add(createSpinnerFrom(hu)); barsLayout.add(hu);
+        labelsLayout.add(new JLabel("Saturation")); labelsLayout.add(createSpinnerFrom(st)); barsLayout.add(st);
+        labelsLayout.add(new JLabel("Brightness")); labelsLayout.add(createSpinnerFrom(br)); barsLayout.add(br);
 
         labeledBarsLayout.add(labelsLayout, BorderLayout.WEST);
         labeledBarsLayout.add(barsLayout, BorderLayout.CENTER);
 
-        totalLayout.add(labeledBarsLayout);
+        totalLayout.setLayout(new BorderLayout());
+        totalLayout.add(labeledBarsLayout, BorderLayout.CENTER);
         JButton repaint = new JButton("REPAINT");
-        totalLayout.add(repaint);
+        totalLayout.add(repaint, BorderLayout.SOUTH);
+
+        frame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                scrollPane.setPreferredSize(new Dimension(frame.getWidth(), frame.getHeight()-160));
+                totalLayout.setPreferredSize(new Dimension(frame.getWidth(), 160));
+            }
+        });
 
         JPanel totalerLayout = new JPanel(new BorderLayout());
         totalerLayout.add(scrollPane, BorderLayout.CENTER);
@@ -130,9 +110,32 @@ public class JuliaSetProgram {
         repaint.addActionListener(e -> jsPanel.repaint());
 
         frame.add(totalerLayout);
-        jsPanel.setVisible(true);
-        frame.setVisible(true);
+
+        frame.getComponentListeners()[0].componentResized(null);
+        for (Component component: barsLayout.getComponents())
+            ((JScrollBar) component).setValue(((JScrollBar) component).getValue());
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
+        repaint.doClick();
+    }
+
+    public static JSpinner createSpinnerFrom(JScrollBar scrollBar)
+    {
+        SpinnerModel model = new SpinnerNumberModel(
+            scrollBar.getValue(),
+            scrollBar.getMinimum(),
+            scrollBar.getMaximum(),
+    (scrollBar.getMaximum()-scrollBar.getMinimum())/300 + 1);
+        JSpinner spinner = new JSpinner(model);
+
+        spinner.addChangeListener(e -> scrollBar.setValue((int) model.getValue()));
+        scrollBar.addAdjustmentListener(e -> model.setValue(e.getValue()));
+        return spinner;
+    }
+
+    public static void main(String[] args)
+    {
+        new JuliaSetProgram();
     }
 }
